@@ -5,3 +5,6 @@ Features:
 - Adding Words to database
 - Removing Words from database
 - Getting Random Words from database
+
+Dependencies:
+- MongoDb Installed and MongoDb.Driver Nuget Package
