@@ -3,6 +3,7 @@ using MongoDB.Driver;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -39,12 +40,27 @@ namespace WordsDatabaseAPI
             wordsCollection = mongoDatabase.GetCollection<CardDocument>(collectionName);
         }
 
+        public void InsertCard(CardDocument card)
+        {
+            if (card.Word == "" || card.Word.Contains(" "))
+                return;
+
+            wordsCollection.InsertOne(card);
+        }
+
         public async void InsertCardAsync(CardDocument card)
         {
             if (card.Word == "" || card.Word.Contains(" "))
                 return;
 
             await wordsCollection.InsertOneAsync(card);
+        }
+
+        public bool RemoveWord(string word)
+        {
+            var wordFilter = Builders<CardDocument>.Filter.Eq("Word", word);
+            CardDocument removedCard = wordsCollection.FindOneAndDeleteAsync(wordFilter).Result;
+            return (removedCard != null);
         }
 
         public async Task<bool> RemoveWordAsync(string word)
@@ -58,11 +74,11 @@ namespace WordsDatabaseAPI
         {
             long documentsCount = await GetDocumentsCountAsync();
 
-            int randomWordIndex = RandomNumberGenerator.GenerateRandomNumber((int)documentsCount);
+            uint randomWordIndex = RandomNumberGenerator.GenerateRandomNumber((uint)documentsCount);
             return await FindCardAtIndexAsync(randomWordIndex);
         }
 
-        public async Task<CardDocument[]> FindMultipleRandomCards(uint numberOfRandomCards)
+        public async Task<CardDocument[]> FindMultipleRandomCardsAsync(uint numberOfRandomCards)
         {
             if (numberOfRandomCards < 1)
                 throw new ArgumentException("No Words Requested.");
@@ -71,40 +87,34 @@ namespace WordsDatabaseAPI
             if (documentsCount < numberOfRandomCards)
                 throw new ArgumentException("There Aren't Enough Words in Database.");
 
-            int[] randomCardIndexes = GetRandomCardIndexes((int)documentsCount, numberOfRandomCards);
+            uint[] randomCardIndexes = GetRandomCardIndexes((uint)documentsCount, numberOfRandomCards);
             var randomCards = new BlockingCollection<CardDocument>((int)numberOfRandomCards);
-            Parallel.ForEach(randomCardIndexes, (index) =>
+            Parallel.ForEach(randomCardIndexes, async (index) =>
             {
-                CardDocument card = FindCardAtIndexAsync(index).Result;
+                CardDocument card = await FindCardAtIndexAsync(index);
                 if(card != null)
-                randomCards.Add(card);
+                    randomCards.Add(card);
             });
 
             return randomCards.ToArray();
         }
 
-        private int[] GetRandomCardIndexes(int maxRandomNumber, uint numberOfRandomCards)
+
+        private uint[] GetRandomCardIndexes(uint maxRandomNumber, uint numberOfRandomCards)
         {
-            int[] randomCardsIndexes = new int[numberOfRandomCards];
-            Dictionary<int, bool> takenIndexes = new Dictionary<int, bool>();
+            HashSet<uint> indexes = new HashSet<uint>();
             for (int i = 0; i < numberOfRandomCards; i++)
             {
-                int randomCardIndex = 0;
+                uint randomCardIndex = 0;
 
                 do
                 {
                     randomCardIndex = RandomNumberGenerator.GenerateRandomNumber(maxRandomNumber);
-                } while (IsKeyTaken(takenIndexes, randomCardIndex));
+                } while (indexes.Contains(randomCardIndex));
 
-                randomCardsIndexes[i] = randomCardIndex;
-                takenIndexes[randomCardIndex] = true;
+                indexes.Add(randomCardIndex);
             }
-            return randomCardsIndexes;
-        }
-
-        private bool IsKeyTaken(Dictionary<int,bool> takenIndexes, int numberKey)
-        {
-            return (takenIndexes.ContainsKey(numberKey) && takenIndexes[numberKey]);
+            return indexes.ToArray();
         }
 
         public async Task<long> GetDocumentsCountAsync()
@@ -112,7 +122,7 @@ namespace WordsDatabaseAPI
             return await wordsCollection.CountDocumentsAsync(new BsonDocument());
         }
 
-        public async Task<CardDocument> FindCardAtIndexAsync(int cardIndex)
+        public async Task<CardDocument> FindCardAtIndexAsync(uint cardIndex)
         {
             long documentsCount = await wordsCollection.CountDocumentsAsync(new BsonDocument());
             if (documentsCount > 0)

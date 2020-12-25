@@ -16,6 +16,12 @@ namespace WordsDatabaseAPI
 
         public CardDocument(ulong id, string word)
         {
+            foreach (char letter in word)
+            {
+                if (!char.IsLetter(letter) && !(letter != '-'))
+                    throw new ArgumentException("The Word must contain only letters");
+            }
+
             Id = id;
             Word = word;
         }

@@ -8,14 +8,16 @@ namespace WordsDatabaseAPI
     {
         private static Random randomizer = new Random();
 
-        public static int GenerateRandomNumber(int maxValue)
+        public static uint GenerateRandomNumber(uint maxValue)
         {
             return GenerateRandomNumber(1, maxValue);
         }
 
-        public static int GenerateRandomNumber(int minValue, int maxValue)
+        public static uint GenerateRandomNumber(uint minValue, uint maxValue)
         {
-            return randomizer.Next(minValue, maxValue);
+            if (minValue > int.MaxValue || maxValue > int.MaxValue)
+                throw new ArgumentOutOfRangeException("minValue/maxValue is beyond int32 bounds");
+            return (uint)randomizer.Next((int)minValue, (int)maxValue);
         }
     }
 }
