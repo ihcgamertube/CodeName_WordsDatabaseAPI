@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace WordsDatabaseAPI
+namespace WordsDatabaseAPI.Utillities
 {
     public static class RandomNumberGenerator
     {

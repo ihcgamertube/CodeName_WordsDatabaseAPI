@@ -3,41 +3,29 @@ using MongoDB.Driver;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WordsDatabaseAPI.DatabaseModels.CollectionModels;
+using WordsDatabaseAPI.Utillities;
 
-namespace WordsDatabaseAPI
+namespace WordsDatabaseAPI.DatabaseModels
 {
-    public class MongoHandler
+    public class MongoHandler : IDatabaseHandler
     {
-        private const string port = "27017";
-        private const string databaseUrl = "mongodb://localhost:" + port;
-        private const string databaseName = "codeNameDb";
-        private const string collectionName = "englishCards";
+        public readonly DatabaseInfo DbInfo;
 
         private MongoClient mongoClient;
         private IMongoDatabase mongoDatabase;
-        private static IMongoCollection<CardDocument> wordsCollection;
+        private IMongoCollection<CardDocument> wordsCollection;
 
-        private static MongoHandler instance = null;
-
-        public static MongoHandler Instance
+        public MongoHandler(DatabaseInfo dbInfo)
         {
-            get
-            {
-                if (instance == null)
-                    instance = new MongoHandler();
-
-                return instance;
-            }
-        }
-
-        private MongoHandler()
-        {
-            mongoClient = new MongoClient(databaseUrl);
-            mongoDatabase = mongoClient.GetDatabase(databaseName);
-            wordsCollection = mongoDatabase.GetCollection<CardDocument>(collectionName);
+            DbInfo = dbInfo;
+            mongoClient = new MongoClient(DbInfo.DatabaseUrl);
+            mongoDatabase = mongoClient.GetDatabase(DbInfo.DatabaseName);
+            wordsCollection = mongoDatabase.GetCollection<CardDocument>(DbInfo.CollectionName);
         }
 
         public void InsertCard(CardDocument card)
@@ -117,6 +105,11 @@ namespace WordsDatabaseAPI
             return indexes.ToArray();
         }
 
+        public long GetDocumentsCount()
+        {
+            return wordsCollection.CountDocumentsAsync(new BsonDocument()).Result;
+        }
+
         public async Task<long> GetDocumentsCountAsync()
         {
             return await wordsCollection.CountDocumentsAsync(new BsonDocument());
@@ -141,6 +134,16 @@ namespace WordsDatabaseAPI
         {
             long documentsCount = await wordsCollection.CountDocumentsAsync(new BsonDocument());
             return ++documentsCount;
+        }
+
+        public void DeleteDatabase(string databaseName)
+        {
+            mongoClient.DropDatabase(databaseName);
+        }
+
+        public async void DeleteDatabaseAsync(string databaseName)
+        {
+            await mongoClient.DropDatabaseAsync(databaseName);
         }
     }
 }
