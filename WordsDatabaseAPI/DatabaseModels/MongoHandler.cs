@@ -2,10 +2,7 @@
 using MongoDB.Driver;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using WordsDatabaseAPI.DatabaseModels.CollectionModels;
 using WordsDatabaseAPI.Utillities;
@@ -20,6 +17,8 @@ namespace WordsDatabaseAPI.DatabaseModels
         private IMongoDatabase mongoDatabase;
         private IMongoCollection<CardDocument> wordsCollection;
 
+        private static readonly object _lock = new Object();
+
         public MongoHandler(DatabaseInfo dbInfo)
         {
             DbInfo = dbInfo;
@@ -33,7 +32,10 @@ namespace WordsDatabaseAPI.DatabaseModels
             if (card.Word == "" || card.Word.Contains(" "))
                 return;
 
-            wordsCollection.InsertOne(card);
+            lock(_lock)
+            {
+                wordsCollection.InsertOne(card);
+            }
         }
 
         public async void InsertCardAsync(CardDocument card)
@@ -47,8 +49,11 @@ namespace WordsDatabaseAPI.DatabaseModels
         public bool RemoveWord(string word)
         {
             var wordFilter = Builders<CardDocument>.Filter.Eq("Word", word);
-            CardDocument removedCard = wordsCollection.FindOneAndDeleteAsync(wordFilter).Result;
-            return (removedCard != null);
+            lock(_lock)
+            {
+                CardDocument removedCard = wordsCollection.FindOneAndDeleteAsync(wordFilter).Result;
+                return (removedCard != null);
+            }
         }
 
         public async Task<bool> RemoveWordAsync(string word)
@@ -75,7 +80,7 @@ namespace WordsDatabaseAPI.DatabaseModels
             if (documentsCount < numberOfRandomCards)
                 throw new ArgumentException("There Aren't Enough Words in Database.");
 
-            uint[] randomCardIndexes = GetRandomCardIndexes((uint)documentsCount, numberOfRandomCards);
+            uint[] randomCardIndexes = RandomNumberGenerator.GetRandomNumbers((uint)documentsCount, numberOfRandomCards);
             var randomCards = new BlockingCollection<CardDocument>((int)numberOfRandomCards);
             Parallel.ForEach(randomCardIndexes, async (index) =>
             {
@@ -87,27 +92,12 @@ namespace WordsDatabaseAPI.DatabaseModels
             return randomCards.ToArray();
         }
 
-
-        private uint[] GetRandomCardIndexes(uint maxRandomNumber, uint numberOfRandomCards)
-        {
-            HashSet<uint> indexes = new HashSet<uint>();
-            for (int i = 0; i < numberOfRandomCards; i++)
-            {
-                uint randomCardIndex = 0;
-
-                do
-                {
-                    randomCardIndex = RandomNumberGenerator.GenerateRandomNumber(maxRandomNumber);
-                } while (indexes.Contains(randomCardIndex));
-
-                indexes.Add(randomCardIndex);
-            }
-            return indexes.ToArray();
-        }
-
         public long GetDocumentsCount()
         {
-            return wordsCollection.CountDocumentsAsync(new BsonDocument()).Result;
+            lock(_lock)
+            {
+                return wordsCollection.CountDocumentsAsync(new BsonDocument()).Result;
+            }
         }
 
         public async Task<long> GetDocumentsCountAsync()
@@ -138,7 +128,10 @@ namespace WordsDatabaseAPI.DatabaseModels
 
         public void DeleteDatabase(string databaseName)
         {
-            mongoClient.DropDatabase(databaseName);
+            lock(_lock)
+            {
+                mongoClient.DropDatabase(databaseName);
+            }
         }
 
         public async void DeleteDatabaseAsync(string databaseName)

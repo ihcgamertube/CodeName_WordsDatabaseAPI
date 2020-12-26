@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
 
 namespace WordsDatabaseAPI.Utillities
 {
@@ -18,6 +18,23 @@ namespace WordsDatabaseAPI.Utillities
             if (minValue > int.MaxValue || maxValue > int.MaxValue)
                 throw new ArgumentOutOfRangeException("minValue/maxValue is beyond int32 bounds");
             return (uint)randomizer.Next((int)minValue, (int)maxValue);
+        }
+
+        public static uint[] GetRandomNumbers(uint maxRandomNumber, uint numberOfRandoms)
+        {
+            HashSet<uint> indexes = new HashSet<uint>();
+            for (int i = 0; i < numberOfRandoms; i++)
+            {
+                uint randomIndex = 0;
+
+                do
+                {
+                    randomIndex = GenerateRandomNumber(maxRandomNumber);
+                } while (indexes.Contains(randomIndex));
+
+                indexes.Add(randomIndex);
+            }
+            return indexes.ToArray();
         }
     }
 }

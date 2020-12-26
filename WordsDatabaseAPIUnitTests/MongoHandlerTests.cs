@@ -1,5 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using WordsDatabaseAPI;
+using WordsDatabaseAPI.DatabaseModels;
+using WordsDatabaseAPI.DatabaseModels.CollectionModels;
 
 namespace WordsDatabaseAPIUnitTests
 {
