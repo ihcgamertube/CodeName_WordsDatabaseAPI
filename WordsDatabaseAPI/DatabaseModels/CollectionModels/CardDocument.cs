@@ -43,5 +43,11 @@ namespace WordsDatabaseAPI.DatabaseModels.CollectionModels
             long id = await mongoHandler.GenerateNewId();
             return new CardDocument((ulong)id, word);
         }
+
+        public override bool Equals(object obj)
+        {
+            CardDocument cardDocument = (CardDocument)obj;
+            return (Id == cardDocument.Id && Word == cardDocument.Word);
+        }
     }
 }

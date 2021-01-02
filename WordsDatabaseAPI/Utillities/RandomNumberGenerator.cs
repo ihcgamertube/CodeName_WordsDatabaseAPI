@@ -15,13 +15,15 @@ namespace WordsDatabaseAPI.Utillities
 
         public static uint GenerateRandomNumber(uint minValue, uint maxValue)
         {
-            if (minValue > int.MaxValue || maxValue > int.MaxValue)
-                throw new ArgumentOutOfRangeException("minValue/maxValue is beyond int32 bounds");
+            if (minValue > maxValue)
+                throw new ArgumentException("minimal value is larger than max value.");
             return (uint)randomizer.Next((int)minValue, (int)maxValue);
         }
 
-        public static uint[] GetRandomNumbers(uint maxRandomNumber, uint numberOfRandoms)
+        public static uint[] GenerateRandomNumbers(uint maxRandomNumber, uint numberOfRandoms)
         {
+            if (maxRandomNumber < numberOfRandoms)
+                throw new ArgumentException("Requesting too many random numbers in range supplied");
             HashSet<uint> indexes = new HashSet<uint>();
             for (int i = 0; i < numberOfRandoms; i++)
             {
