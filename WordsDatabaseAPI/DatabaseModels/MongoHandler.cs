@@ -199,8 +199,13 @@ namespace WordsDatabaseAPI.DatabaseModels
 
         #endregion
 
+        #region Find
+
         public CardDocument FindCardAtIndex(uint cardIndex)
         {
+            if (cardIndex == 0)
+                cardIndex = 1;
+
             var WordFilter = Builders<CardDocument>.Filter.Eq("_id", cardIndex);
 
             var card = wordsCollection.FindSync<CardDocument>(WordFilter);
@@ -215,29 +220,10 @@ namespace WordsDatabaseAPI.DatabaseModels
             return card.FirstOrDefault();
         }
 
-        public async Task<long> GenerateNewId()
-        {
-            long documentsCount = await GetDocumentsCountAsync();
-            return ++documentsCount;
-        }
-
-        public void DeleteDatabase(string databaseName)
-        {
-            lock(_lock)
-            {
-                mongoClient.DropDatabase(databaseName);
-            }
-        }
-
-        public async Task DeleteDatabaseAsync(string databaseName)
-        {
-            await mongoClient.DropDatabaseAsync(databaseName);
-        }
-
         public CardDocument FindLastDocument()
         {
             var sort = Builders<CardDocument>.Sort.Descending("_id");
-            lock(_lock)
+            lock (_lock)
             {
                 CardDocument last = wordsCollection.Find(new BsonDocument()).Sort(sort).Limit(1).FirstOrDefault();
                 return last;
@@ -254,6 +240,30 @@ namespace WordsDatabaseAPI.DatabaseModels
 
             IAsyncCursor<CardDocument> last = await wordsCollection.FindAsync(new BsonDocument(), options);
             return last.FirstOrDefault();
+        }
+
+        #endregion
+
+        #region Delete
+        public void DeleteDatabase(string databaseName)
+        {
+            lock (_lock)
+            {
+                mongoClient.DropDatabase(databaseName);
+            }
+        }
+
+        public async Task DeleteDatabaseAsync(string databaseName)
+        {
+            await mongoClient.DropDatabaseAsync(databaseName);
+        }
+
+        #endregion
+
+        public async Task<long> GenerateNewId()
+        {
+            long documentsCount = await GetDocumentsCountAsync();
+            return ++documentsCount;
         }
     }
 }

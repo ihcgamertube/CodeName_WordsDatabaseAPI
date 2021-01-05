@@ -196,6 +196,79 @@ namespace WordsDatabaseAPIUnitTests
             mongoHandler.DeleteDatabase(mongoHandler.DbInfo.DatabaseName);
         }
 
+        #endregion
+
+        #region Find Tests
+
+        [TestMethod]
+        public void Should_GetNull_When_NoWordsInDb()
+        {
+            Assert.IsNull(mongoHandler.FindCardAtIndex(5));
+            Assert.IsNull(mongoHandler.FindCardAtIndexAsync(5).Result);
+        }
+
+        [TestMethod]
+        public void Should_GetNull_When_IndexOutOfBounds()
+        {
+            string word = "Test";
+            CardDocument card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            mongoHandler.InsertCard(card);
+
+            Assert.IsNull(mongoHandler.FindCardAtIndex(5));
+            Assert.IsNull(mongoHandler.FindCardAtIndexAsync(5).Result);
+        }
+
+        [TestMethod]
+        public void Should_GetCard_When_IndexValid()
+        {
+            string word = "Test";
+            CardDocument card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            mongoHandler.InsertCard(card);
+
+            Assert.IsNotNull(mongoHandler.FindCardAtIndex(1));
+            Assert.IsNotNull(mongoHandler.FindCardAtIndexAsync(1).Result);
+        }
+
+        [TestMethod]
+        public void Should_GetLastDocument_When_WordsInDb()
+        {
+            FillDatabase();
+
+            string word = "GamesIsOn";
+            CardDocument card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            mongoHandler.InsertCard(card);
+
+            card = mongoHandler.FindLastDocument();
+            Assert.IsNotNull(card);
+            CardDocument card2 = mongoHandler.FindLastDocumentAsync().Result;
+            Assert.IsNotNull(card2);
+            Assert.AreEqual(card.Word, word);
+            Assert.AreEqual(card2.Word, word);
+        }
+
+        [TestMethod]
+        public void Should_GetNull_When_DbIsEmpty()
+        {
+            CardDocument card = mongoHandler.FindLastDocument();
+            Assert.IsNull(card);
+            CardDocument card2 = mongoHandler.FindLastDocumentAsync().Result;
+            Assert.IsNull(card2);
+        }
+
+        #endregion
+
+        [TestMethod]
+        public void Should_GenerateCorrectId_When_DbIsEmptyOrFilled()
+        {
+            Assert.IsTrue(mongoHandler.GenerateNewId().Result == 1);
+
+            string word = "Test";
+            CardDocument card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            mongoHandler.InsertCard(card);
+
+            Assert.IsTrue(mongoHandler.GenerateNewId().Result == 2);
+        }
+
         private void FillDatabase()
         {
             string word = "Test";
@@ -238,8 +311,6 @@ namespace WordsDatabaseAPIUnitTests
             card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
             mongoHandler.InsertCard(card);
         }
-
-        #endregion
 
         [TestCleanup]
         public void MongoHandlerDestroyer()
