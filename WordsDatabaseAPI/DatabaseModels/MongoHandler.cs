@@ -56,17 +56,17 @@ namespace WordsDatabaseAPI.DatabaseModels
             if (card == null)
                 return false;
 
-            CardDocument possibleExistingId = await FindCardAtIndexAsync((uint)card.Id);
+            CardDocument possibleExistingId = await FindCardAtIndexAsync((uint)card.Id).ConfigureAwait(false);
             if (possibleExistingId != null)
                 return false;
 
             var WordFilter = Builders<CardDocument>.Filter.Eq("Word", card.Word);
-            var findQueryResult = await wordsCollection.FindAsync(WordFilter);
+            var findQueryResult = await wordsCollection.FindAsync(WordFilter).ConfigureAwait(false);
             CardDocument possibleExistingWord = findQueryResult.FirstOrDefault();
             if (possibleExistingWord != null)
                 return false;
 
-            await wordsCollection.InsertOneAsync(card);
+            await wordsCollection.InsertOneAsync(card).ConfigureAwait(false);
             return true;
         }
 
@@ -105,11 +105,11 @@ namespace WordsDatabaseAPI.DatabaseModels
         {
             var wordFilter = Builders<CardDocument>.Filter.Eq("Word", word);
 
-            CardDocument lastCardInDb = await FindLastDocumentAsync();
+            CardDocument lastCardInDb = await FindLastDocumentAsync().ConfigureAwait(false);
             if (lastCardInDb == null)
                 return false;
 
-            IAsyncCursor<CardDocument> cardsFound = await wordsCollection.FindAsync(wordFilter);
+            IAsyncCursor<CardDocument> cardsFound = await wordsCollection.FindAsync(wordFilter).ConfigureAwait(false);
             CardDocument cardToRemove = cardsFound.FirstOrDefault();
 
             if (cardToRemove == null)
@@ -117,9 +117,9 @@ namespace WordsDatabaseAPI.DatabaseModels
 
             var findOptions = new FindOneAndUpdateOptions<CardDocument>() { ReturnDocument = ReturnDocument.After };
             var updateDefinition = Builders<CardDocument>.Update.Set("Word", lastCardInDb.Word);
-            CardDocument updatedDocument = await wordsCollection.FindOneAndUpdateAsync(wordFilter, updateDefinition, findOptions);
+            CardDocument updatedDocument = await wordsCollection.FindOneAndUpdateAsync(wordFilter, updateDefinition, findOptions).ConfigureAwait(false);
             if (updatedDocument.Word == lastCardInDb.Word)
-                return await DeleteCardDocumentAsync(lastCardInDb);
+                return await DeleteCardDocumentAsync(lastCardInDb).ConfigureAwait(false);
 
             return false;
         }
@@ -144,7 +144,7 @@ namespace WordsDatabaseAPI.DatabaseModels
                 return false;
 
             var wordFilter = Builders<CardDocument>.Filter.Eq("_id", cardDocument.Id);
-            CardDocument returnedDocument = await wordsCollection.FindOneAndDeleteAsync<CardDocument>(wordFilter);
+            CardDocument returnedDocument = await wordsCollection.FindOneAndDeleteAsync<CardDocument>(wordFilter).ConfigureAwait(false);
             return returnedDocument.Equals(cardDocument);
         }
 
@@ -154,13 +154,13 @@ namespace WordsDatabaseAPI.DatabaseModels
 
         public async Task<CardDocument> FindRandomCardAsync()
         {
-            long documentsCount = await GetDocumentsCountAsync();
+            long documentsCount = await GetDocumentsCountAsync().ConfigureAwait(false);
 
             if (documentsCount == 0)
                 return null;
 
             uint randomWordIndex = RandomNumberGenerator.GenerateRandomNumber((uint)documentsCount);
-            return await FindCardAtIndexAsync(randomWordIndex);
+            return await FindCardAtIndexAsync(randomWordIndex).ConfigureAwait(false);
         }
 
         public async Task<CardDocument[]> FindMultipleRandomCardsAsync(uint numberOfRandomCards)
@@ -168,7 +168,7 @@ namespace WordsDatabaseAPI.DatabaseModels
             if (numberOfRandomCards < 1)
                 return null;
 
-            long documentsCount = await GetDocumentsCountAsync();
+            long documentsCount = await GetDocumentsCountAsync().ConfigureAwait(false);
             if (documentsCount < numberOfRandomCards)
                 throw new ArgumentException("There Aren't Enough Words in Database.");
 
@@ -177,7 +177,7 @@ namespace WordsDatabaseAPI.DatabaseModels
 
             foreach(uint index in randomCardIndexes)
             {
-                CardDocument card = await FindCardAtIndexAsync(index);
+                CardDocument card = await FindCardAtIndexAsync(index).ConfigureAwait(false);
                 if (card != null)
                     randomCards.Add(card);
             }
@@ -207,7 +207,7 @@ namespace WordsDatabaseAPI.DatabaseModels
 
         public async Task<long> GetDocumentsCountAsync()
         {
-            return await wordsCollection.CountDocumentsAsync(new BsonDocument());
+            return await wordsCollection.CountDocumentsAsync(new BsonDocument()).ConfigureAwait(false);
         }
 
         #endregion
@@ -229,7 +229,7 @@ namespace WordsDatabaseAPI.DatabaseModels
         {
             var WordFilter = Builders<CardDocument>.Filter.Eq("_id", cardIndex);
 
-            var card = await wordsCollection.FindAsync<CardDocument>(WordFilter);
+            var card = await wordsCollection.FindAsync<CardDocument>(WordFilter).ConfigureAwait(false);
             return card.FirstOrDefault();
         }
 
@@ -251,7 +251,7 @@ namespace WordsDatabaseAPI.DatabaseModels
                 Sort = sort
             };
 
-            IAsyncCursor<CardDocument> last = await wordsCollection.FindAsync(new BsonDocument(), options);
+            IAsyncCursor<CardDocument> last = await wordsCollection.FindAsync(new BsonDocument(), options).ConfigureAwait(false);
             return last.FirstOrDefault();
         }
 
@@ -268,14 +268,14 @@ namespace WordsDatabaseAPI.DatabaseModels
 
         public async Task DeleteDatabaseAsync(string databaseName)
         {
-            await mongoClient.DropDatabaseAsync(databaseName);
+            await mongoClient.DropDatabaseAsync(databaseName).ConfigureAwait(false);
         }
 
         #endregion
 
         public async Task<long> GenerateNewId()
         {
-            long documentsCount = await GetDocumentsCountAsync();
+            long documentsCount = await GetDocumentsCountAsync().ConfigureAwait(false);
             return ++documentsCount;
         }
     }
