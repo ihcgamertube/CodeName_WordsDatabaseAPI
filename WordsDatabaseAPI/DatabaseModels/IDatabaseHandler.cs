@@ -8,7 +8,7 @@ namespace WordsDatabaseAPI.DatabaseModels
 {
     public interface IDatabaseHandler
     {
-        Task InsertCardAsync(CardDocument card);
+        Task<bool> InsertCardAsync(CardDocument card);
         Task<bool> RemoveWordAsync(string word);
         Task<CardDocument> FindRandomCardAsync();
         Task<CardDocument[]> FindMultipleRandomCardsAsync(uint numberOfRandomCards);

@@ -30,31 +30,44 @@ namespace WordsDatabaseAPI.DatabaseModels
 
         #region Insert
 
-        public void InsertCard(CardDocument card)
+        public bool InsertCard(CardDocument card)
         {
             if (card == null)
-                return;
+                return false;
 
             lock (_lock)
             {
                 CardDocument possibleExistingId = FindCardAtIndex((uint)card.Id);
                 if (possibleExistingId != null)
-                    return;
+                    return false;
+
+                var WordFilter = Builders<CardDocument>.Filter.Eq("Word", card.Word);
+                CardDocument possibleExistingWord = wordsCollection.Find(WordFilter).FirstOrDefault();
+                if (possibleExistingWord != null)
+                    return false;
 
                 wordsCollection.InsertOne(card);
+                return true;
             }
         }
 
-        public async Task InsertCardAsync(CardDocument card)
+        public async Task<bool> InsertCardAsync(CardDocument card)
         {
             if (card == null)
-                return;
+                return false;
 
             CardDocument possibleExistingId = await FindCardAtIndexAsync((uint)card.Id);
             if (possibleExistingId != null)
-                return;
+                return false;
+
+            var WordFilter = Builders<CardDocument>.Filter.Eq("Word", card.Word);
+            var findQueryResult = await wordsCollection.FindAsync(WordFilter);
+            CardDocument possibleExistingWord = findQueryResult.FirstOrDefault();
+            if (possibleExistingWord != null)
+                return false;
 
             await wordsCollection.InsertOneAsync(card);
+            return true;
         }
 
         #endregion
