@@ -35,7 +35,7 @@ namespace WordsDatabaseAPI.DatabaseModels.CollectionModels
             Word = word;
         }
 
-        public static async Task<CardDocument> CreateBasedOnWordAsync(MongoHandler mongoHandler, string word)
+        public static async Task<CardDocument> CreateBasedOnWordAsync(IDatabaseHandler mongoHandler, string word)
         {
             if (mongoHandler == null)
                 throw new ArgumentNullException("Mongo Handler is Null");

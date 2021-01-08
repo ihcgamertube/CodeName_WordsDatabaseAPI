@@ -17,7 +17,7 @@ namespace WordsDatabaseAPI.Utillities
         {
             if (minValue > maxValue)
                 throw new ArgumentException("minimal value is larger than max value.");
-            return (uint)randomizer.Next((int)minValue, (int)maxValue);
+            return (uint)randomizer.Next((int)minValue, (int)(maxValue + 1));
         }
 
         public static uint[] GenerateRandomNumbers(uint maxRandomNumber, uint numberOfRandoms)
