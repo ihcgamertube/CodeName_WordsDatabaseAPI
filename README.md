@@ -1,10 +1,12 @@
 # CodeName_WordsDatabaseAPI
-This Project offers the api for communicating with the mongoDB database for words.
+This Project offers the API for communicating with the databases for words.
 
-Features:
-- Adding Words to database
-- Removing Words from database
-- Getting Random Words from database
+So far, we're doing only MongoDb handling, but we are designing the .NET Standard library to be open for other Databases...
+
+Exposed Features:
+- Adding Words to Database
+- Removing Words from Database
+- Getting Random Words from Database
 
 Dependencies:
 - MongoDb Installed and MongoDb.Driver Nuget Package
