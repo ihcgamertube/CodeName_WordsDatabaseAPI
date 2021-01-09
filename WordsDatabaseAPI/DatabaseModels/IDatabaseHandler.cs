@@ -13,8 +13,6 @@ namespace WordsDatabaseAPI.DatabaseModels
         Task<CardDocument> FindRandomCardAsync();
         Task<CardDocument[]> FindMultipleRandomCardsAsync(uint numberOfRandomCards);
         Task<long> GetDocumentsCountAsync();
-        Task<CardDocument> FindCardAtIndexAsync(uint cardIndex);
-        Task<CardDocument> FindLastDocumentAsync();
-        Task<long> GenerateNewId();
+        Task<CardDocument> FindCardAsync(string word);
     }
 }

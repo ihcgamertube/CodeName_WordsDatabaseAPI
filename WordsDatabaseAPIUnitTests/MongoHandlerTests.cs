@@ -24,11 +24,11 @@ namespace WordsDatabaseAPIUnitTests
         [TestMethod]
         public void Should_Succeed_When_AddWordsToDbAsyncAndSync()
         {
-            CardDocument card = CardDocument.CreateBasedOnWordAsync(mongoHandler, "Test").Result;
+            CardDocument card = new CardDocument("Test");
             mongoHandler.InsertCard(card);
             Assert.IsTrue(mongoHandler.GetDocumentsCount() == 1);
 
-            card = CardDocument.CreateBasedOnWordAsync(mongoHandler, "Wall").Result;
+            card = new CardDocument("Wall");
             mongoHandler.InsertCardAsync(card).Wait();
             Assert.IsTrue(mongoHandler.GetDocumentsCount() == 2);
 
@@ -41,18 +41,6 @@ namespace WordsDatabaseAPIUnitTests
             CardDocument card = null;
             mongoHandler.InsertCard(card);
             Assert.IsTrue(mongoHandler.GetDocumentsCount() == 0);
-        }
-
-        [TestMethod]
-        public void Should_Fail_When_CardDocumentIdAlreadyExists()
-        {
-            CardDocument card = CardDocument.CreateBasedOnWordAsync(mongoHandler, "Test").Result;
-            mongoHandler.InsertCard(card);
-            mongoHandler.InsertCard(card);
-
-            Assert.IsTrue(mongoHandler.GetDocumentsCount() == 1);
-
-            mongoHandler.DeleteDatabase(mongoHandler.DbInfo.DatabaseName);
         }
 
         #endregion
@@ -70,7 +58,7 @@ namespace WordsDatabaseAPIUnitTests
         [TestMethod]
         public void Should_FailRemove_When_WordNotInDb()
         {
-            CardDocument card = CardDocument.CreateBasedOnWordAsync(mongoHandler, "Test").Result;
+            CardDocument card = new CardDocument("Test");
             mongoHandler.InsertCard(card);
 
             string word = "Shniztel";
@@ -83,18 +71,19 @@ namespace WordsDatabaseAPIUnitTests
         [TestMethod]
         public void Should_RemoveWord_When_WordExistsInDocument()
         {
-            CardDocument card = CardDocument.CreateBasedOnWordAsync(mongoHandler, "Test").Result;
+            CardDocument card = new CardDocument("Test");
             mongoHandler.InsertCard(card);
 
-            card = CardDocument.CreateBasedOnWordAsync(mongoHandler, "Screen").Result;
-            mongoHandler.InsertCard(card);
-
-            Assert.IsTrue(mongoHandler.RemoveWord("Test") && mongoHandler.GetDocumentsCount() == 1);
-
-            card = CardDocument.CreateBasedOnWordAsync(mongoHandler, "Test").Result;
+            card = new CardDocument("Screen");
             mongoHandler.InsertCard(card);
 
             Assert.IsTrue(mongoHandler.RemoveWord("Test") && mongoHandler.GetDocumentsCount() == 1);
+
+            card = new CardDocument("Test");
+            mongoHandler.InsertCard(card);
+
+            bool removed = mongoHandler.RemoveWordAsync("Test").Result;
+            Assert.IsTrue(removed && mongoHandler.GetDocumentsCount() == 1);
             
             mongoHandler.DeleteDatabase(mongoHandler.DbInfo.DatabaseName);
         }
@@ -106,10 +95,10 @@ namespace WordsDatabaseAPIUnitTests
         [TestMethod]
         public void Should_Count2Documents_When_Inserted2Documents()
         {
-            CardDocument card = CardDocument.CreateBasedOnWordAsync(mongoHandler, "Test").Result;
+            CardDocument card = new CardDocument("Test");
             mongoHandler.InsertCard(card);
 
-            CardDocument card2 = CardDocument.CreateBasedOnWordAsync(mongoHandler, "Wall").Result;
+            CardDocument card2 = new CardDocument("Wall");
             mongoHandler.InsertCard(card2);
 
             Assert.IsTrue(mongoHandler.GetDocumentsCount() == 2);
@@ -131,25 +120,25 @@ namespace WordsDatabaseAPIUnitTests
         }
 
         [TestMethod]
-        public void Should_GetRandomCard_When_1OrMoreWordsInDb()
+        public void Should_GetRandomCard_When_WordsInDb()
         {
             string word = "Test";
-            CardDocument card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            CardDocument card = new CardDocument(word);
             mongoHandler.InsertCard(card);
 
             CardDocument randomCard = mongoHandler.FindRandomCardAsync().Result;
             Assert.IsTrue(randomCard.Word == word);
 
             word = "Wall";
-            card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            card = new CardDocument(word);
             mongoHandler.InsertCard(card);
 
             word = "Random";
-            card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            card = new CardDocument(word);
             mongoHandler.InsertCard(card);
 
             word = "Fake";
-            card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            card = new CardDocument(word);
             mongoHandler.InsertCard(card);
 
             randomCard = mongoHandler.FindRandomCardAsync().Result;
@@ -197,112 +186,74 @@ namespace WordsDatabaseAPIUnitTests
         [TestMethod]
         public void Should_GetNull_When_NoWordsInDb()
         {
-            Assert.IsNull(mongoHandler.FindCardAtIndex(5));
-            Assert.IsNull(mongoHandler.FindCardAtIndexAsync(5).Result);
+            Assert.IsNull(mongoHandler.FindCard("Word"));
+            Assert.IsNull(mongoHandler.FindCardAsync("Word").Result);
         }
 
         [TestMethod]
-        public void Should_GetNull_When_IndexOutOfBounds()
+        public void Should_GetNull_When_WordNotInDb()
         {
             string word = "Test";
-            CardDocument card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            CardDocument card = new CardDocument(word);
             mongoHandler.InsertCard(card);
 
-            Assert.IsNull(mongoHandler.FindCardAtIndex(5));
-            Assert.IsNull(mongoHandler.FindCardAtIndexAsync(5).Result);
+            Assert.IsNull(mongoHandler.FindCard("Word"));
+            Assert.IsNull(mongoHandler.FindCardAsync("Word").Result);
         }
 
         [TestMethod]
-        public void Should_GetCard_When_IndexValid()
+        public void Should_GetCard_When_WordInDb()
         {
             string word = "Test";
-            CardDocument card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            CardDocument card = new CardDocument(word);
             mongoHandler.InsertCard(card);
 
-            Assert.IsNotNull(mongoHandler.FindCardAtIndex(1));
-            Assert.IsNotNull(mongoHandler.FindCardAtIndexAsync(1).Result);
-        }
-
-        [TestMethod]
-        public void Should_GetLastDocument_When_WordsInDb()
-        {
-            FillDatabase();
-
-            string word = "GamesIsOn";
-            CardDocument card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
-            mongoHandler.InsertCard(card);
-
-            card = mongoHandler.FindLastDocument();
-            Assert.IsNotNull(card);
-            CardDocument card2 = mongoHandler.FindLastDocumentAsync().Result;
-            Assert.IsNotNull(card2);
-            Assert.AreEqual(card.Word, word);
-            Assert.AreEqual(card2.Word, word);
-        }
-
-        [TestMethod]
-        public void Should_GetNull_When_DbIsEmpty()
-        {
-            CardDocument card = mongoHandler.FindLastDocument();
-            Assert.IsNull(card);
-            CardDocument card2 = mongoHandler.FindLastDocumentAsync().Result;
-            Assert.IsNull(card2);
+            Assert.IsNotNull(mongoHandler.FindCard(card.Word));
+            Assert.IsNotNull(mongoHandler.FindCardAsync(card.Word).Result);
         }
 
         #endregion
 
-        [TestMethod]
-        public void Should_GenerateCorrectId_When_DbIsEmptyOrFilled()
-        {
-            Assert.IsTrue(mongoHandler.GenerateNewId().Result == 1);
-
-            string word = "Test";
-            CardDocument card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
-            mongoHandler.InsertCard(card);
-
-            Assert.IsTrue(mongoHandler.GenerateNewId().Result == 2);
-        }
-
         private void FillDatabase()
         {
             string word = "Test";
-            CardDocument card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            CardDocument card = new CardDocument(word);
             mongoHandler.InsertCard(card);
 
             word = "Wall";
-            card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            card = new CardDocument(word);
             mongoHandler.InsertCard(card);
 
             word = "Random";
-            card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            card = new CardDocument(word);
             mongoHandler.InsertCard(card);
 
             word = "Fake";
-            card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            card = new CardDocument(word);
             mongoHandler.InsertCard(card);
 
             word = "Word";
-            card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            card = new CardDocument(word);
             mongoHandler.InsertCard(card);
 
             word = "Filler";
-            card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            card = new CardDocument(word);
             mongoHandler.InsertCard(card);
 
             word = "Nini";
-            card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            card = new CardDocument(word);
             mongoHandler.InsertCard(card);
 
             word = "Tamir";
-            card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            card = new CardDocument(word);
             mongoHandler.InsertCard(card);
 
             word = "Code";
-            card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            card = new CardDocument(word);
             mongoHandler.InsertCard(card);
 
             word = "Name";
-            card = CardDocument.CreateBasedOnWordAsync(mongoHandler, word).Result;
+            card = new CardDocument(word);
             mongoHandler.InsertCard(card);
         }
 

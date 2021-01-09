@@ -9,13 +9,13 @@ namespace WordsDatabaseAPI.DatabaseModels.CollectionModels
     public class CardDocument
     {
         [BsonId]
-        public ulong Id { get; set; }
+        public ObjectId Id { get; set; }
 
         [BsonElement]
         public string Word { get; set; }
 
 
-        public CardDocument(ulong id, string word)
+        public CardDocument(string word)
         {
             if(string.IsNullOrEmpty(word) || string.IsNullOrWhiteSpace(word))
                 throw new ArgumentException("The Word is empty");
@@ -31,17 +31,8 @@ namespace WordsDatabaseAPI.DatabaseModels.CollectionModels
             if(!isWordValid)
                 throw new ArgumentException("The Word must contain only letters");
 
-            Id = id;
+            Id = ObjectId.GenerateNewId();
             Word = word;
-        }
-
-        public static async Task<CardDocument> CreateBasedOnWordAsync(IDatabaseHandler mongoHandler, string word)
-        {
-            if (mongoHandler == null)
-                throw new ArgumentNullException("Mongo Handler is Null");
-
-            long id = await mongoHandler.GenerateNewId();
-            return new CardDocument((ulong)id, word);
         }
 
         public override bool Equals(object obj)
