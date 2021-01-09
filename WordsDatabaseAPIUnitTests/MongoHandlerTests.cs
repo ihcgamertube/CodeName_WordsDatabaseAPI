@@ -165,17 +165,11 @@ namespace WordsDatabaseAPIUnitTests
         }
 
         [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]
-        public void Should_ThrowException_When_NotEnoughWordsInDatabase()
+        public void Should_ReturnLessWords_When_NotEnoughWordsInDatabase()
         {
-            try
-            {
-                var cards = mongoHandler.FindMultipleRandomCardsAsync(15).Result;
-            }
-            catch (AggregateException e)
-            {
-                throw e.InnerException;
-            }
+            uint numberOfRandomCards = 15;
+            var cards = mongoHandler.FindMultipleRandomCardsAsync(numberOfRandomCards).Result;
+            Assert.IsTrue(cards.Length < numberOfRandomCards);
         }
 
         [TestMethod]

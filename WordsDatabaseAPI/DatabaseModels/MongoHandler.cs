@@ -1,5 +1,6 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Driver;
+using MongoDB.Driver.Linq;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
@@ -159,8 +160,9 @@ namespace WordsDatabaseAPI.DatabaseModels
             if (documentsCount == 0)
                 return null;
 
-            uint randomWordIndex = RandomNumberGenerator.GenerateRandomNumber((uint)documentsCount);
-            return await FindCardAtIndexAsync(randomWordIndex).ConfigureAwait(false);
+            CardDocument randomCard = await wordsCollection.AsQueryable().Sample(1)
+                                        .FirstOrDefaultAsync().ConfigureAwait(false);
+            return randomCard;
         }
 
         public async Task<CardDocument[]> FindMultipleRandomCardsAsync(uint numberOfRandomCards)
@@ -170,27 +172,10 @@ namespace WordsDatabaseAPI.DatabaseModels
 
             long documentsCount = await GetDocumentsCountAsync().ConfigureAwait(false);
             if (documentsCount < numberOfRandomCards)
-                throw new ArgumentException("There Aren't Enough Words in Database.");
+                numberOfRandomCards = (uint)documentsCount;
 
-            uint[] randomCardIndexes = RandomNumberGenerator.GenerateRandomNumbers((uint)documentsCount, numberOfRandomCards);
-            var randomCards = new BlockingCollection<CardDocument>((int)numberOfRandomCards);
-
-            foreach(uint index in randomCardIndexes)
-            {
-                CardDocument card = await FindCardAtIndexAsync(index).ConfigureAwait(false);
-                if (card != null)
-                    randomCards.Add(card);
-            }
-
-            // TODO check if better performance possible using parallel
-            //Parallel.ForEach(randomCardIndexes, async (index) =>
-            //{
-            //    CardDocument card = await FindCardAtIndexAsync(index);
-            //    if(card != null)
-            //        randomCards.Add(card);
-            //});
-
-            return randomCards.ToArray();
+            var randomCards = wordsCollection.AsQueryable().Sample(numberOfRandomCards).ToArray();
+            return randomCards;
         }
 
         #endregion

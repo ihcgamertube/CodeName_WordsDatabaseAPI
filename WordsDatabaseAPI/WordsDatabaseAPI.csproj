@@ -3,6 +3,25 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Version>0.0.1</Version>
+    <Authors>Tamir Gelberg, Nadav Nini</Authors>
+    <Company></Company>
+    <Product>CodeName</Product>
+    <RepositoryUrl>https://github.com/ihcgamertube/CodeName_WordsDatabaseAPI</RepositoryUrl>
+    <PackageTags>v0.0.1</PackageTags>
+    <PackageReleaseNotes>this release features wrapper for mongoDb driver communication and includes:
+- Basic CRUD functions (Sync + Async):
+* Insert
+* Delete
+* Find
+* Randomize
+* Clean Db
+* Generate ID
+
+- Random Numbers Generator Utillity
+- CardDocument model for english words database context
+- Unit Tests for All Functionalities</PackageReleaseNotes>
+    <NeutralLanguage>en</NeutralLanguage>
   </PropertyGroup>
 
   <ItemGroup>
