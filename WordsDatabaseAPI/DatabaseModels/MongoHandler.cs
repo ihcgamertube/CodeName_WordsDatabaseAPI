@@ -90,6 +90,29 @@ namespace WordsDatabaseAPI.DatabaseModels
 
         #endregion
 
+        #region Update
+
+        public bool UpdateWord(string existingWord, string newWord)
+        {
+            var filter = Builders<CardDocument>.Filter.Eq((card) => card.Word, existingWord);
+            var updateDefinition = Builders<CardDocument>.Update.Set((card) => card.Word, newWord);
+            lock(_lock)
+            {
+                var result = wordsCollection.UpdateOne(filter, updateDefinition);
+                return result.IsAcknowledged;
+            }
+        }
+
+        public async Task<bool> UpdateWordAsync(string existingWord, string newWord)
+        {
+            var filter = Builders<CardDocument>.Filter.Eq((card) => card.Word, existingWord);
+            var updateDefinition = Builders<CardDocument>.Update.Set((card) => card.Word, newWord);
+            var result = await wordsCollection.UpdateOneAsync(filter, updateDefinition);
+            return result.IsAcknowledged;
+        }
+
+        #endregion
+
         #region Randomizer
 
         public async Task<CardDocument> FindRandomCardAsync()

@@ -10,6 +10,7 @@ namespace WordsDatabaseAPI.DatabaseModels
     {
         Task<bool> InsertCardAsync(CardDocument card);
         Task<bool> RemoveWordAsync(string word);
+        Task<bool> UpdateWordAsync(string existingWord, string newWord);
         Task<CardDocument> FindRandomCardAsync();
         Task<CardDocument[]> FindMultipleRandomCardsAsync(uint numberOfRandomCards);
         Task<long> GetDocumentsCountAsync();
