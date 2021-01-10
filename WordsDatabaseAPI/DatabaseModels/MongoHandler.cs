@@ -99,7 +99,7 @@ namespace WordsDatabaseAPI.DatabaseModels
             lock(_lock)
             {
                 var result = wordsCollection.UpdateOne(filter, updateDefinition);
-                return result.IsAcknowledged;
+                return result.MatchedCount != 0;
             }
         }
 
@@ -108,7 +108,7 @@ namespace WordsDatabaseAPI.DatabaseModels
             var filter = Builders<CardDocument>.Filter.Eq((card) => card.Word, existingWord);
             var updateDefinition = Builders<CardDocument>.Update.Set((card) => card.Word, newWord);
             var result = await wordsCollection.UpdateOneAsync(filter, updateDefinition);
-            return result.IsAcknowledged;
+            return result.MatchedCount != 0;
         }
 
         #endregion

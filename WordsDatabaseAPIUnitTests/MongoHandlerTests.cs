@@ -214,6 +214,27 @@ namespace WordsDatabaseAPIUnitTests
 
         #endregion
 
+        #region Update Tests
+
+        [TestMethod]
+        public void Should_FailUpdate_When_WordNotInDb()
+        {
+            Assert.IsFalse(mongoHandler.UpdateWord("Test", "Tester"));
+            Assert.IsFalse(mongoHandler.UpdateWordAsync("Tester", "Test").Result);
+        }
+
+        [TestMethod]
+        public void Should_SuccessUpdate_When_WordInDb()
+        {
+            CardDocument card = new CardDocument("Test");
+            mongoHandler.InsertCard(card);
+
+            Assert.IsTrue(mongoHandler.UpdateWord("Test", "Tester"));
+            Assert.IsTrue(mongoHandler.UpdateWordAsync("Tester", "Test").Result);
+        }
+
+        #endregion
+
         private void FillDatabase()
         {
             string word = "Test";
