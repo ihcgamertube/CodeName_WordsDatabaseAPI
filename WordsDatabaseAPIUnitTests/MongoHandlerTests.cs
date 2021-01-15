@@ -3,6 +3,7 @@ using System;
 using System.Threading.Tasks;
 using WordsDatabaseAPI.DatabaseModels;
 using WordsDatabaseAPI.DatabaseModels.CollectionModels;
+using WordsDatabaseAPI.DatabaseModels.ResultModels;
 
 namespace WordsDatabaseAPIUnitTests
 {
@@ -48,22 +49,14 @@ namespace WordsDatabaseAPIUnitTests
         #region Remove Tests
 
         [TestMethod]
-        public void Should_FailRemove_When_NoWordsInDB()
-        {
-            string word = "Shniztel";
-            Assert.IsFalse(mongoHandler.RemoveWord(word));
-            Assert.IsFalse(mongoHandler.RemoveWordAsync(word).Result);
-        }
-
-        [TestMethod]
         public void Should_FailRemove_When_WordNotInDb()
         {
             CardDocument card = new CardDocument("Test");
             mongoHandler.InsertCard(card);
 
             string word = "Shniztel";
-            Assert.IsFalse(mongoHandler.RemoveWord(word));
-            Assert.IsFalse(mongoHandler.RemoveWordAsync(word).Result);
+            Assert.IsTrue(mongoHandler.RemoveWord(word) == RemoveActionResult.WORD_NOT_IN_DATABASE);
+            Assert.IsTrue(mongoHandler.RemoveWordAsync(word).Result == RemoveActionResult.WORD_NOT_IN_DATABASE);
 
             mongoHandler.DeleteDatabase(mongoHandler.DbInfo.DatabaseName);
         }
@@ -77,13 +70,14 @@ namespace WordsDatabaseAPIUnitTests
             card = new CardDocument("Screen");
             mongoHandler.InsertCard(card);
 
-            Assert.IsTrue(mongoHandler.RemoveWord("Test") && mongoHandler.GetDocumentsCount() == 1);
+            Assert.IsTrue(mongoHandler.RemoveWord("Test") == RemoveActionResult.OK
+                && mongoHandler.GetDocumentsCount() == 1);
 
             card = new CardDocument("Test");
             mongoHandler.InsertCard(card);
 
-            bool removed = mongoHandler.RemoveWordAsync("Test").Result;
-            Assert.IsTrue(removed && mongoHandler.GetDocumentsCount() == 1);
+            RemoveActionResult removed = mongoHandler.RemoveWordAsync("Test").Result;
+            Assert.IsTrue(removed == RemoveActionResult.OK && mongoHandler.GetDocumentsCount() == 1);
             
             mongoHandler.DeleteDatabase(mongoHandler.DbInfo.DatabaseName);
         }
@@ -114,9 +108,10 @@ namespace WordsDatabaseAPIUnitTests
         [TestMethod]
         public void Should_ReturnNull_When_NoWordsInDb()
         {
-            Task<CardDocument> task = mongoHandler.FindRandomCardAsync();
+            Task<RandomActionResult> task = mongoHandler.FindRandomCardAsync();
             task.Wait();
-            Assert.IsNull(task.Result);
+            Assert.IsNull(task.Result.Result[0]);
+            Assert.IsTrue(task.Result.Reason == RandomActionResultReason.NO_WORDS_IN_DB);
         }
 
         [TestMethod]
@@ -126,8 +121,8 @@ namespace WordsDatabaseAPIUnitTests
             CardDocument card = new CardDocument(word);
             mongoHandler.InsertCard(card);
 
-            CardDocument randomCard = mongoHandler.FindRandomCardAsync().Result;
-            Assert.IsTrue(randomCard.Word == word);
+            RandomActionResult randomCard = mongoHandler.FindRandomCardAsync().Result;
+            Assert.IsTrue(randomCard.Result[0].Word == word);
 
             word = "Wall";
             card = new CardDocument(word);
@@ -150,15 +145,18 @@ namespace WordsDatabaseAPIUnitTests
         [TestMethod]
         public void Should_Fail_When_ZeroCardsRequested()
         {
-            Assert.IsNull(mongoHandler.FindMultipleRandomCardsAsync(0).Result);
+            Assert.IsTrue(mongoHandler.FindMultipleRandomCardsAsync(0).Result.Reason == RandomActionResultReason.NO_CARDS_REQUESTS);
         }
 
         [TestMethod]
         public void Should_ReturnLessWords_When_NotEnoughWordsInDatabase()
         {
+            mongoHandler.InsertCard(new CardDocument("Hi"));
+
             uint numberOfRandomCards = 15;
             var cards = mongoHandler.FindMultipleRandomCardsAsync(numberOfRandomCards).Result;
-            Assert.IsTrue(cards.Length < numberOfRandomCards);
+            Assert.IsTrue(cards.Result.Length < numberOfRandomCards && 
+                cards.Reason == RandomActionResultReason.NOT_ENOUGH_WORDS_IN_DB);
         }
 
         [TestMethod]
@@ -166,10 +164,10 @@ namespace WordsDatabaseAPIUnitTests
         {
             FillDatabase();
 
-            Task<CardDocument[]> randomCardsTask = mongoHandler.FindMultipleRandomCardsAsync(5);
+            Task<RandomActionResult> randomCardsTask = mongoHandler.FindMultipleRandomCardsAsync(5);
             randomCardsTask.Wait();
 
-            CardDocument[] randomCards = randomCardsTask.Result;
+            CardDocument[] randomCards = randomCardsTask.Result.Result;
 
             foreach (CardDocument randomCard in randomCards)
             {
@@ -219,8 +217,8 @@ namespace WordsDatabaseAPIUnitTests
         [TestMethod]
         public void Should_FailUpdate_When_WordNotInDb()
         {
-            Assert.IsFalse(mongoHandler.UpdateWord("Test", "Tester"));
-            Assert.IsFalse(mongoHandler.UpdateWordAsync("Tester", "Test").Result);
+            Assert.IsTrue(mongoHandler.UpdateWord("Test", "Tester") == UpdateActionResult.EXISTING_WORD_NOT_IN_DATABASE);
+            Assert.IsTrue(mongoHandler.UpdateWordAsync("Tester", "Test").Result == UpdateActionResult.EXISTING_WORD_NOT_IN_DATABASE);
         }
 
         [TestMethod]
@@ -229,8 +227,8 @@ namespace WordsDatabaseAPIUnitTests
             CardDocument card = new CardDocument("Test");
             mongoHandler.InsertCard(card);
 
-            Assert.IsTrue(mongoHandler.UpdateWord("Test", "Tester"));
-            Assert.IsTrue(mongoHandler.UpdateWordAsync("Tester", "Test").Result);
+            Assert.IsTrue(mongoHandler.UpdateWord("Test", "Tester") == UpdateActionResult.OK);
+            Assert.IsTrue(mongoHandler.UpdateWordAsync("Tester", "Test").Result == UpdateActionResult.OK);
         }
 
         #endregion

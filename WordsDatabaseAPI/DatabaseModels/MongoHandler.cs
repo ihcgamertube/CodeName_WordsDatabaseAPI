@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using WordsDatabaseAPI.DatabaseModels.CollectionModels;
+using WordsDatabaseAPI.DatabaseModels.ResultModels;
 using WordsDatabaseAPI.Utillities;
 
 namespace WordsDatabaseAPI.DatabaseModels
@@ -31,40 +32,40 @@ namespace WordsDatabaseAPI.DatabaseModels
 
         #region Insert
 
-        public bool InsertCard(CardDocument card)
+        public InsertActionResult InsertCard(CardDocument card)
         {
             if (card == null)
-                return false;
+                return InsertActionResult.BAD_VALUE;
 
             lock (_lock)
             {
                 CardDocument possibleExistingWord = FindCard(card.Word);
                 if (possibleExistingWord != null)
-                    return false;
+                    return InsertActionResult.EXISTING_WORD;
 
                 wordsCollection.InsertOne(card);
-                return true;
+                return InsertActionResult.OK;
             }
         }
 
-        public async Task<bool> InsertCardAsync(CardDocument card)
+        public async Task<InsertActionResult> InsertCardAsync(CardDocument card)
         {
             if (card == null)
-                return false;
+                return InsertActionResult.BAD_VALUE;
 
             CardDocument possibleExistingWord = await FindCardAsync(card.Word);
             if (possibleExistingWord != null)
-                return false;
+                return InsertActionResult.EXISTING_WORD;
 
             await wordsCollection.InsertOneAsync(card).ConfigureAwait(false);
-            return true;
+            return InsertActionResult.OK;
         }
 
         #endregion
 
         #region Remove/Delete
 
-        public bool RemoveWord(string word)
+        public RemoveActionResult RemoveWord(string word)
         {
             var removeFilter = Builders<CardDocument>.Filter.Eq((cardDocument) => cardDocument.Word, word);
 
@@ -73,62 +74,81 @@ namespace WordsDatabaseAPI.DatabaseModels
                 CardDocument removedCard = wordsCollection.FindOneAndDelete(removeFilter);
 
                 if (removedCard != null && removedCard.Word == word)
-                    return true;
-                return false;
+                    return RemoveActionResult.OK;
+                return RemoveActionResult.WORD_NOT_IN_DATABASE;
             }
         }
 
-        public async Task<bool> RemoveWordAsync(string word)
+        public async Task<RemoveActionResult> RemoveWordAsync(string word)
         {
             var removeFilter = Builders<CardDocument>.Filter.Eq((cardDocument) => cardDocument.Word, word);
 
             CardDocument removedCard = await wordsCollection.FindOneAndDeleteAsync(removeFilter);
             if (removedCard != null && removedCard.Word == word)
-                return true;
-            return false;
+                return RemoveActionResult.OK;
+            return RemoveActionResult.WORD_NOT_IN_DATABASE;
         }
 
         #endregion
 
         #region Update
 
-        public bool UpdateWord(string existingWord, string newWord)
+        public UpdateActionResult UpdateWord(string existingWord, string newWord)
         {
             var filter = Builders<CardDocument>.Filter.Eq((card) => card.Word, existingWord);
             var updateDefinition = Builders<CardDocument>.Update.Set((card) => card.Word, newWord);
             lock(_lock)
             {
                 var result = wordsCollection.UpdateOne(filter, updateDefinition);
-                return result.MatchedCount != 0;
+                return (result.MatchedCount != 0)? UpdateActionResult.OK: UpdateActionResult.EXISTING_WORD_NOT_IN_DATABASE;
             }
         }
 
-        public async Task<bool> UpdateWordAsync(string existingWord, string newWord)
+        public async Task<UpdateActionResult> UpdateWordAsync(string existingWord, string newWord)
         {
             var filter = Builders<CardDocument>.Filter.Eq((card) => card.Word, existingWord);
             var updateDefinition = Builders<CardDocument>.Update.Set((card) => card.Word, newWord);
             var result = await wordsCollection.UpdateOneAsync(filter, updateDefinition);
-            return result.MatchedCount != 0;
+            return (result.MatchedCount != 0) ? UpdateActionResult.OK : UpdateActionResult.EXISTING_WORD_NOT_IN_DATABASE;
         }
 
         #endregion
 
         #region Randomizer
 
-        public async Task<CardDocument> FindRandomCardAsync()
+        public async Task<RandomActionResult> FindRandomCardAsync()
         {
+            RandomActionResultReason validation = RandomActionResultReason.FAILED;
             CardDocument randomCard = await wordsCollection.AsQueryable().Sample(1)
                                         .FirstOrDefaultAsync().ConfigureAwait(false);
-            return randomCard;
+            if (randomCard == null)
+                validation |= RandomActionResultReason.NO_WORDS_IN_DB;
+            else
+                validation = RandomActionResultReason.OK;
+
+            CardDocument[] cardDocuments = { randomCard };
+            return new RandomActionResult() { Reason = validation, Result = cardDocuments };
         }
 
-        public async Task<CardDocument[]> FindMultipleRandomCardsAsync(uint numberOfRandomCards)
+        public async Task<RandomActionResult> FindMultipleRandomCardsAsync(uint numberOfRandomCards)
         {
+            RandomActionResultReason validation = RandomActionResultReason.FAILED;
             if (numberOfRandomCards < 1)
-                return null;
+            {
+                validation |= RandomActionResultReason.NO_CARDS_REQUESTS;
+                return new RandomActionResult() { Reason = validation, Result = null };
+            }
 
             var randomCards = wordsCollection.AsQueryable().Sample(numberOfRandomCards).ToArray();
-            return randomCards;
+
+            if (randomCards.Length == 0)
+                validation |= RandomActionResultReason.NO_WORDS_IN_DB;
+            else if (randomCards.Length < numberOfRandomCards)
+                validation |= RandomActionResultReason.NOT_ENOUGH_WORDS_IN_DB;
+            else
+                validation = RandomActionResultReason.OK;
+
+            return new RandomActionResult() { Reason = validation, Result = randomCards };
         }
 
         #endregion
